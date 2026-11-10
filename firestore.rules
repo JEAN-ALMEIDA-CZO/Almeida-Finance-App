@@ -1,0 +1,322 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global default-deny catch-all
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // --- REUSABLE PRIMITIVES ---
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- VALIDATION HELPERS ---
+    function isValidTransaction(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.description is string && data.description.size() > 0 && data.description.size() <= 300 &&
+             data.type is string && (data.type == 'INCOME' || data.type == 'EXPENSE') &&
+             data.category is string && data.category.size() > 0 && data.category.size() <= 100 &&
+             data.amount is number && data.amount >= 0 &&
+             data.isFixed is bool &&
+             data.dueDate is string && data.dueDate.size() <= 20 &&
+             data.date is string && data.date.size() <= 20 &&
+             data.isPaid is bool &&
+             data.isBankSynced is bool &&
+             (!('workspaceId' in data) || (data.workspaceId is string && data.workspaceId.size() <= 128)) &&
+             (!('authorName' in data) || (data.authorName is string && data.authorName.size() <= 150)) &&
+             (!('authorEmail' in data) || (data.authorEmail is string && data.authorEmail.size() <= 150)) &&
+             (!('lastModifiedByName' in data) || (data.lastModifiedByName is string && data.lastModifiedByName.size() <= 150)) &&
+             (!('bankName' in data) || (data.bankName is string && data.bankName.size() <= 100)) &&
+             (!('boletoAttachmentName' in data) || (data.boletoAttachmentName is string && data.boletoAttachmentName.size() <= 300)) &&
+             (!('boletoAttachmentData' in data) || (data.boletoAttachmentData is string && data.boletoAttachmentData.size() <= 1000000)) &&
+             (!('boletoBarCode' in data) || (data.boletoBarCode is string && data.boletoBarCode.size() <= 100)) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidGoal(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.targetAmount is number && data.targetAmount >= 0 &&
+             data.currentAmount is number && data.currentAmount >= 0 &&
+             data.deadline is string && data.deadline.size() <= 20 &&
+             data.category is string && data.category.size() <= 100 &&
+             (!('workspaceId' in data) || (data.workspaceId is string && data.workspaceId.size() <= 128)) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidBudget(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.category is string && data.category.size() > 0 && data.category.size() <= 100 &&
+             data.monthlyLimit is number && data.monthlyLimit >= 0 &&
+             data.month is string && data.month.size() <= 20 &&
+             (!('workspaceId' in data) || (data.workspaceId is string && data.workspaceId.size() <= 128)) &&
+             (!('updatedAt' in data) || data.updatedAt is timestamp);
+    }
+
+    function isValidNotification(data) {
+      return data.userId is string && data.userId.size() <= 128 &&
+             data.title is string && data.title.size() > 0 && data.title.size() <= 200 &&
+             data.message is string && data.message.size() > 0 && data.message.size() <= 1000 &&
+             data.type is string && (data.type == 'DUE_DATE' || data.type == 'BUDGET_EXCEEDED' || data.type == 'GOAL_REACHED' || data.type == 'BANK_SYNC' || data.type == 'GENERAL' || data.type == 'BOLETO' || data.type == 'ACTIVITY') &&
+             data.isRead is bool &&
+             (!('workspaceId' in data) || (data.workspaceId is string && data.workspaceId.size() <= 128)) &&
+             (!('authorName' in data) || (data.authorName is string && data.authorName.size() <= 150));
+    }
+
+    function isValidAuditLog(data) {
+      return data.workspaceId is string && data.workspaceId.size() <= 128 &&
+             data.userId is string && data.userId.size() <= 128 &&
+             data.userName is string && data.userName.size() <= 150 &&
+             data.action is string && data.action.size() <= 50 &&
+             data.entityType is string && data.entityType.size() <= 50 &&
+             data.entityTitle is string && data.entityTitle.size() <= 300 &&
+             data.details is string && data.details.size() <= 1000 &&
+             (!('userEmail' in data) || (data.userEmail is string && data.userEmail.size() <= 150));
+    }
+
+    function isValidWorkspace(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 100 &&
+             data.ownerUid is string && data.ownerUid.size() <= 128 &&
+             data.memberUids is list && data.memberUids.size() <= 100 &&
+             data.inviteCode is string && data.inviteCode.size() <= 30;
+    }
+
+    // --- WORKSPACES (MULTI-USER SHARED FINANCIAL SPACES) ---
+    match /workspaces/{workspaceId} {
+      function isMember() {
+        return isSignedIn() && (
+          request.auth.uid in get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.memberUids
+        );
+      }
+
+      function isWorkspaceOwner() {
+        return isSignedIn() && (
+          request.auth.uid == get(/databases/$(database)/documents/workspaces/$(workspaceId)).data.ownerUid
+        );
+      }
+
+      allow get: if isSignedIn() && (request.auth.uid in resource.data.memberUids);
+      allow list: if isSignedIn();
+
+      allow create: if isSignedIn() &&
+                       isValidId(workspaceId) &&
+                       incoming().ownerUid == request.auth.uid &&
+                       incoming().memberUids.hasAll([request.auth.uid]) &&
+                       incoming().createdAt is timestamp &&
+                       incoming().createdAt <= request.time &&
+                       isValidWorkspace(incoming());
+
+      allow update: if isSignedIn() &&
+                       isValidId(workspaceId) &&
+                       (request.auth.uid in existing().memberUids || incoming().memberUids.hasAll(existing().memberUids)) &&
+                       incoming().createdAt == existing().createdAt &&
+                       incoming().ownerUid == existing().ownerUid &&
+                       isValidWorkspace(incoming());
+
+      allow delete: if isSignedIn() && request.auth.uid == existing().ownerUid;
+
+      // Transactions subcollection
+      match /transactions/{transactionId} {
+        allow get, list: if isMember();
+
+        allow create: if isMember() &&
+                         isValidId(transactionId) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidTransaction(incoming());
+
+        allow update: if isMember() &&
+                         isValidId(transactionId) &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidTransaction(incoming());
+
+        allow delete: if isMember() && isValidId(transactionId);
+      }
+
+      // Goals subcollection
+      match /goals/{goalId} {
+        allow get, list: if isMember();
+
+        allow create: if isMember() &&
+                         isValidId(goalId) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidGoal(incoming());
+
+        allow update: if isMember() &&
+                         isValidId(goalId) &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidGoal(incoming());
+
+        allow delete: if isMember() && isValidId(goalId);
+      }
+
+      // Budgets subcollection
+      match /budgets/{budgetId} {
+        allow get, list: if isMember();
+
+        allow create: if isMember() &&
+                         isValidId(budgetId) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidBudget(incoming());
+
+        allow update: if isMember() &&
+                         isValidId(budgetId) &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidBudget(incoming());
+
+        allow delete: if isMember() && isValidId(budgetId);
+      }
+
+      // Notifications subcollection
+      match /notifications/{notificationId} {
+        allow get, list: if isMember();
+
+        allow create: if isMember() &&
+                         isValidId(notificationId) &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidNotification(incoming());
+
+        allow update: if isMember() &&
+                         isValidId(notificationId) &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidNotification(incoming());
+
+        allow delete: if isMember() && isValidId(notificationId);
+      }
+
+      // Audit Logs (Immutable history of movements)
+      match /audit_logs/{logId} {
+        allow get, list: if isMember();
+
+        allow create: if isMember() &&
+                         isValidId(logId) &&
+                         incoming().userId == request.auth.uid &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidAuditLog(incoming());
+
+        allow update, delete: if false; // Strict immutability for audit integrity
+      }
+    }
+
+    // --- USER SUBCOLLECTIONS (Personal spaces & compatibility) ---
+    match /users/{userId} {
+      allow get, list: if isSignedIn() && request.auth.uid == userId;
+      allow create, update: if isSignedIn() && request.auth.uid == userId;
+
+      // Transactions
+      match /transactions/{transactionId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(transactionId) &&
+                         incoming().userId == userId &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidTransaction(incoming());
+
+        allow update: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(transactionId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidTransaction(incoming());
+
+        allow delete: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(transactionId);
+      }
+
+      // Goals
+      match /goals/{goalId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(goalId) &&
+                         incoming().userId == userId &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidGoal(incoming());
+
+        allow update: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(goalId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidGoal(incoming());
+
+        allow delete: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(goalId);
+      }
+
+      // Budgets
+      match /budgets/{budgetId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(budgetId) &&
+                         incoming().userId == userId &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidBudget(incoming());
+
+        allow update: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(budgetId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidBudget(incoming());
+
+        allow delete: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(budgetId);
+      }
+
+      // Notifications
+      match /notifications/{notificationId} {
+        allow get, list: if isSignedIn() && request.auth.uid == userId;
+
+        allow create: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(notificationId) &&
+                         incoming().userId == userId &&
+                         incoming().createdAt is timestamp &&
+                         incoming().createdAt <= request.time &&
+                         isValidNotification(incoming());
+
+        allow update: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(notificationId) &&
+                         incoming().userId == existing().userId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidNotification(incoming());
+
+        allow delete: if isSignedIn() &&
+                         request.auth.uid == userId &&
+                         isValidId(notificationId);
+      }
+    }
+  }
+}

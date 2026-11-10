@@ -1,0 +1,154 @@
+{
+  "entities": {
+    "Workspace": {
+      "title": "Workspace",
+      "description": "Shared multi-user financial workspace",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "description": "Workspace name" },
+        "ownerUid": { "type": "string", "description": "Owner Google UID" },
+        "ownerEmail": { "type": "string", "description": "Owner email address" },
+        "memberUids": { "type": "array", "items": { "type": "string" }, "description": "List of member user IDs" },
+        "inviteCode": { "type": "string", "description": "Invite code to link new members" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Update timestamp via serverTimestamp" }
+      },
+      "required": ["name", "ownerUid", "memberUids", "inviteCode", "createdAt"]
+    },
+    "Transaction": {
+      "title": "Transaction",
+      "description": "Financial transaction record (income or expense)",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner or author Google UID" },
+        "workspaceId": { "type": "string", "description": "ID of shared workspace" },
+        "authorName": { "type": "string", "description": "Name of the user who created it" },
+        "authorEmail": { "type": "string", "description": "Email of the user who created it" },
+        "lastModifiedByName": { "type": "string", "description": "Name of the user who last edited it" },
+        "description": { "type": "string", "description": "Transaction description" },
+        "type": { "type": "string", "enum": ["INCOME", "EXPENSE"], "description": "Transaction flow type" },
+        "category": { "type": "string", "description": "Category name" },
+        "amount": { "type": "number", "description": "Monetary value in BRL" },
+        "isFixed": { "type": "boolean", "description": "Whether the expense or income is fixed or variable" },
+        "dueDate": { "type": "string", "description": "Due date formatted as YYYY-MM-DD" },
+        "date": { "type": "string", "description": "Transaction date formatted as YYYY-MM-DD" },
+        "isPaid": { "type": "boolean", "description": "Payment or receipt status" },
+        "boletoAttachmentName": { "type": "string", "description": "Filename of attached boleto image or PDF" },
+        "boletoAttachmentData": { "type": "string", "description": "Base64 or local URI of attached boleto" },
+        "boletoBarCode": { "type": "string", "description": "Bar code or digital line for the boleto" },
+        "isBankSynced": { "type": "boolean", "description": "Whether imported from bank integration" },
+        "bankName": { "type": "string", "description": "Name of the connected bank" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp via serverTimestamp" }
+      },
+      "required": ["userId", "description", "type", "category", "amount", "isFixed", "dueDate", "date", "isPaid", "isBankSynced", "createdAt"]
+    },
+    "Goal": {
+      "title": "Goal",
+      "description": "Savings or financial target",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Google UID" },
+        "workspaceId": { "type": "string", "description": "Shared workspace ID" },
+        "title": { "type": "string", "description": "Goal title" },
+        "targetAmount": { "type": "number", "description": "Target amount to save" },
+        "currentAmount": { "type": "number", "description": "Currently saved amount" },
+        "deadline": { "type": "string", "description": "Deadline formatted as YYYY-MM-DD" },
+        "category": { "type": "string", "description": "Category associated with goal" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp via serverTimestamp" }
+      },
+      "required": ["userId", "title", "targetAmount", "currentAmount", "deadline", "category", "createdAt"]
+    },
+    "Budget": {
+      "title": "Budget",
+      "description": "Monthly category budget limit",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner Google UID" },
+        "workspaceId": { "type": "string", "description": "Shared workspace ID" },
+        "category": { "type": "string", "description": "Category name" },
+        "monthlyLimit": { "type": "number", "description": "Maximum spending budget limit" },
+        "month": { "type": "string", "description": "Month formatted as YYYY-MM" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" },
+        "updatedAt": { "type": "string", "format": "date-time", "description": "Last update timestamp via serverTimestamp" }
+      },
+      "required": ["userId", "category", "monthlyLimit", "month", "createdAt"]
+    },
+    "NotificationItem": {
+      "title": "NotificationItem",
+      "description": "System or user alert notification",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "Owner or target Google UID" },
+        "workspaceId": { "type": "string", "description": "Shared workspace ID" },
+        "authorName": { "type": "string", "description": "Author of notification" },
+        "title": { "type": "string", "description": "Alert title" },
+        "message": { "type": "string", "description": "Alert body message" },
+        "type": { "type": "string", "enum": ["DUE_DATE", "BUDGET_EXCEEDED", "GOAL_REACHED", "BANK_SYNC", "GENERAL", "BOLETO", "ACTIVITY"], "description": "Type of alert" },
+        "isRead": { "type": "boolean", "description": "Read status" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" }
+      },
+      "required": ["userId", "title", "message", "type", "isRead", "createdAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Immutable history record for every change and movement across linked users",
+      "type": "object",
+      "properties": {
+        "workspaceId": { "type": "string", "description": "Shared workspace ID" },
+        "userId": { "type": "string", "description": "Google UID of the user who performed the action" },
+        "userName": { "type": "string", "description": "Name of user who performed the action" },
+        "userEmail": { "type": "string", "description": "Email of user" },
+        "action": { "type": "string", "description": "Action performed: CRIOU, EDITOU, EXCLUIU, PAGOU, PARCELOU_BOLETO, SINCRONIZOU_BANCO, VINCULOU_USUARIO" },
+        "entityType": { "type": "string", "description": "Entity affected: TRANSAÇÃO, META, ORÇAMENTO, BOLETO, CONTA" },
+        "entityTitle": { "type": "string", "description": "Title or description of the affected entity" },
+        "details": { "type": "string", "description": "Summary of movement changes and values" },
+        "createdAt": { "type": "string", "format": "date-time", "description": "Creation timestamp via serverTimestamp" }
+      },
+      "required": ["workspaceId", "userId", "userName", "action", "entityType", "entityTitle", "details", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/workspaces/{workspaceId}": {
+      "schema": { "$ref": "#/entities/Workspace" },
+      "description": "Multi-user shared workspaces"
+    },
+    "/workspaces/{workspaceId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "Transactions visible and synced to all linked members"
+    },
+    "/workspaces/{workspaceId}/goals/{goalId}": {
+      "schema": { "$ref": "#/entities/Goal" },
+      "description": "Shared financial goals for the workspace"
+    },
+    "/workspaces/{workspaceId}/budgets/{budgetId}": {
+      "schema": { "$ref": "#/entities/Budget" },
+      "description": "Shared monthly category budgets"
+    },
+    "/workspaces/{workspaceId}/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/NotificationItem" },
+      "description": "Shared and personal alerts broadcast to linked users"
+    },
+    "/workspaces/{workspaceId}/audit_logs/{auditLogId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Immutable activity and movement audit trail"
+    },
+    "/users/{userId}/transactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/Transaction" },
+      "description": "User transactions for incomes and expenses"
+    },
+    "/users/{userId}/goals/{goalId}": {
+      "schema": { "$ref": "#/entities/Goal" },
+      "description": "User savings goals"
+    },
+    "/users/{userId}/budgets/{budgetId}": {
+      "schema": { "$ref": "#/entities/Budget" },
+      "description": "User monthly category budgets"
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": { "$ref": "#/entities/NotificationItem" },
+      "description": "User alert notifications"
+    }
+  }
+}

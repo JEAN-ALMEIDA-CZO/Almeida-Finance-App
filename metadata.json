@@ -1,0 +1,6 @@
+{
+  "name": "Almeida Finance",
+  "description": "Gestão financeira pessoal e empresarial com leitor inteligente de boletos e PDFs, fluxo de caixa e sincronização em nuvem.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
