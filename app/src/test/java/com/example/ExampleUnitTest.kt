@@ -51,4 +51,9 @@ class ExampleUnitTest {
     assertEquals("ws_alm", installments[0].workspaceId)
     assertEquals("Carlos Almeida", installments[0].authorName)
   }
+
+  @Test
+  fun testPicPayIsIncludedInConnectedBanks() {
+    assertTrue("PicPay deve estar presente na lista de bancos conectados", com.example.ui.transactions.CONNECTED_BANKS.contains("PicPay"))
+  }
 }

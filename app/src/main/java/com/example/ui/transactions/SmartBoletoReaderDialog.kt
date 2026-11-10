@@ -464,28 +464,25 @@ fun SmartBoletoReaderDialog(
 
                             Spacer(modifier = Modifier.height(10.dp))
 
-                            Row(
+                            OutlinedTextField(
+                                value = detectedAmountStr,
+                                onValueChange = { detectedAmountStr = it },
+                                label = { Text("Valor da Parcela (R$)") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                singleLine = true,
                                 modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(10.dp)
-                            ) {
-                                OutlinedTextField(
-                                    value = detectedAmountStr,
-                                    onValueChange = { detectedAmountStr = it },
-                                    label = { Text("Valor da Parcela (R$)") },
-                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f),
-                                    leadingIcon = { Text("R$", fontWeight = FontWeight.Bold, color = GoldPrimary) }
-                                )
+                                leadingIcon = { Text("R$", fontWeight = FontWeight.Bold, color = GoldPrimary, modifier = Modifier.padding(start = 12.dp)) }
+                            )
 
-                                OutlinedTextField(
-                                    value = detectedCategory,
-                                    onValueChange = { detectedCategory = it },
-                                    label = { Text("Categoria") },
-                                    singleLine = true,
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            OutlinedTextField(
+                                value = detectedCategory,
+                                onValueChange = { detectedCategory = it },
+                                label = { Text("Categoria") },
+                                singleLine = true,
+                                modifier = Modifier.fillMaxWidth()
+                            )
 
                             Spacer(modifier = Modifier.height(10.dp))
 

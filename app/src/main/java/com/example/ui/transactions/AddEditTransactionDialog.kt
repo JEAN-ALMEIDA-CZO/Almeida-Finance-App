@@ -98,12 +98,14 @@ val DEFAULT_CATEGORIES = listOf(
 
 val CONNECTED_BANKS = listOf(
     "Carteira Principal",
+    "PicPay",
     "Nubank",
     "Itaú Unibanco",
     "Banco do Brasil",
     "Bradesco",
     "Santander",
-    "Banco Inter"
+    "Banco Inter",
+    "Caixa Econômica"
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -339,66 +341,66 @@ fun AddEditTransactionDialog(
                         .testTag("description_input")
                 )
 
-                // Category & Bank Selectors
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                // Category Selector (Linha individual)
+                ExposedDropdownMenuBox(
+                    expanded = categoryExpanded,
+                    onExpandedChange = { categoryExpanded = it },
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    ExposedDropdownMenuBox(
+                    OutlinedTextField(
+                        value = selectedCategory,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Categoria") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
                         expanded = categoryExpanded,
-                        onExpandedChange = { categoryExpanded = it },
-                        modifier = Modifier.weight(1f)
+                        onDismissRequest = { categoryExpanded = false }
                     ) {
-                        OutlinedTextField(
-                            value = selectedCategory,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Categoria") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = categoryExpanded) },
-                            modifier = Modifier.menuAnchor()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = categoryExpanded,
-                            onDismissRequest = { categoryExpanded = false }
-                        ) {
-                            DEFAULT_CATEGORIES.forEach { cat ->
-                                DropdownMenuItem(
-                                    text = { Text(cat) },
-                                    onClick = {
-                                        selectedCategory = cat
-                                        categoryExpanded = false
-                                    }
-                                )
-                            }
+                        DEFAULT_CATEGORIES.forEach { cat ->
+                            DropdownMenuItem(
+                                text = { Text(cat) },
+                                onClick = {
+                                    selectedCategory = cat
+                                    categoryExpanded = false
+                                }
+                            )
                         }
                     }
+                }
 
-                    ExposedDropdownMenuBox(
+                // Bank / Account Selector (Linha individual)
+                ExposedDropdownMenuBox(
+                    expanded = bankExpanded,
+                    onExpandedChange = { bankExpanded = it },
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    OutlinedTextField(
+                        value = selectedBank,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("Conta / Banco") },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bankExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor()
+                    )
+                    ExposedDropdownMenu(
                         expanded = bankExpanded,
-                        onExpandedChange = { bankExpanded = it },
-                        modifier = Modifier.weight(1f)
+                        onDismissRequest = { bankExpanded = false }
                     ) {
-                        OutlinedTextField(
-                            value = selectedBank,
-                            onValueChange = {},
-                            readOnly = true,
-                            label = { Text("Conta / Banco") },
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = bankExpanded) },
-                            modifier = Modifier.menuAnchor()
-                        )
-                        ExposedDropdownMenu(
-                            expanded = bankExpanded,
-                            onDismissRequest = { bankExpanded = false }
-                        ) {
-                            CONNECTED_BANKS.forEach { bank ->
-                                DropdownMenuItem(
-                                    text = { Text(bank) },
-                                    onClick = {
-                                        selectedBank = bank
-                                        bankExpanded = false
-                                    }
-                                )
-                            }
+                        CONNECTED_BANKS.forEach { bank ->
+                            DropdownMenuItem(
+                                text = { Text(bank) },
+                                onClick = {
+                                    selectedBank = bank
+                                    bankExpanded = false
+                                }
+                            )
                         }
                     }
                 }

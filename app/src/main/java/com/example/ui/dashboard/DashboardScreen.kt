@@ -66,6 +66,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.data.model.Transaction
 import com.example.data.model.TransactionType
+import com.example.ui.components.InteractiveExpensePieChart
 import com.example.ui.components.IosBalanceDashboardCard
 import com.example.ui.theme.ExpenseRed
 import com.example.ui.theme.FixedExpensePurple
@@ -325,6 +326,14 @@ fun DashboardScreen(
                     }
                 }
             }
+        }
+
+        // Gráfico de Pizza / Rosca Interativo estilo Recharts (Despesas por Categoria)
+        item {
+            InteractiveExpensePieChart(
+                transactions = transactions,
+                onCategoryClick = { /* interactive selection handled internally */ }
+            )
         }
 
         // Smart Boleto Reader Feature Banner

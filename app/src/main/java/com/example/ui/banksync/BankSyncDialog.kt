@@ -77,6 +77,7 @@ data class SupportedBank(
 )
 
 val SUPPORTED_BANKS = listOf(
+    SupportedBank("PicPay", "380", Color(0xFF11C76F), false),
     SupportedBank("Nubank", "260", Color(0xFF8A05BE), true),
     SupportedBank("Itaú Unibanco", "341", Color(0xFFEC7000), true),
     SupportedBank("Banco do Brasil", "001", Color(0xFFFBF800), false),
